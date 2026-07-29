@@ -72,14 +72,14 @@ from sentence_transformers.evaluation.InformationRetrievalEvaluator import Infor
 from sentence_transformers.model_card import SentenceTransformerModelCardData
 from sentence_transformers.sampler import MultiDatasetDefaultBatchSampler
 from sentence_transformers.training_args import BatchSamplers
-from sentence_transformers.util import all_gather_with_grad
+from sentence_transformers.util import all_gather_with_grad, fullname
 from torch.utils.checkpoint import get_device_states, set_device_states
 from tqdm import tqdm
 from transformers import TrainerCallback, TrainerControl, TrainerState
 from transformers.training_args import TrainingArguments
 
-# Disable dataset metrics
-SentenceTransformerModelCardData.compute_dataset_metrics = lambda self, dataset, dataset_info, loss: {}
+# Model card metadata without the dataset statistics, which tokenize 1000 rows of every split at trainer init
+SentenceTransformerModelCardData.compute_dataset_metrics = lambda self, data, info, loss: {**info, "size": len(data), "columns": [f"<code>{column}</code>" for column in data.column_names], "loss": {"fullname": fullname(loss)}}
 
 logger = logging.getLogger(__name__)
 
@@ -595,8 +595,32 @@ class SentenceTransformerDataCollatorSampleNeg(SentenceTransformerDataCollator):
                     column_names.remove(label_column)
                     break
 
-        router_mapping = self._resolve_router_mapping(batch)
-        prompts = self._resolve_prompts(batch)
+        router_mapping = self.router_mapping
+        if (
+            router_mapping
+            and isinstance(router_mapping, dict)
+            and isinstance(next(iter(router_mapping.values())), dict)
+        ):
+            if "dataset_name" in batch and batch["dataset_name"] in router_mapping:
+                router_mapping = router_mapping[batch["dataset_name"]]
+            else:
+                router_mapping = {}
+
+        prompts = self.prompts
+        if prompts and isinstance(prompts, dict):
+            is_multi_dataset = "dataset_name" in batch
+            if is_multi_dataset and batch["dataset_name"] in prompts:
+                prompts = prompts[batch["dataset_name"]]
+            elif isinstance(next(iter(prompts.values())), dict):
+                if not is_multi_dataset:
+                    raise ValueError(
+                        "The prompts provided to the trainer are a nested dictionary. In this setting, the first "
+                        "level of the dictionary should map to dataset names and the second level to column names. "
+                        "However, as the provided dataset is a not a DatasetDict, no dataset names can be inferred. "
+                        f"The keys to the provided prompts dictionary are {list(prompts.keys())!r}"
+                    )
+                else:
+                    prompts = {}
 
         negative_columns = [column for column in column_names if column.startswith("negative_")]
         other_columns = [column for column in column_names if not column.startswith("negative_")]
@@ -611,13 +635,28 @@ class SentenceTransformerDataCollatorSampleNeg(SentenceTransformerDataCollator):
 
         for column_name in other_columns + negative_columns:
             task = router_mapping.get(column_name, None)
-            prompt = self._get_prompt_for_column(prompts, column_name) if prompts else None
+
+            prompt = None
+            if isinstance(prompts, str):
+                prompt = prompts
+            elif isinstance(prompts, dict) and column_name in prompts:
+                prompt = prompts[column_name]
 
             sample = features[0][column_name]
             text_key = ("document" if "document" in sample else "query") if isinstance(sample, dict) else None
             inputs = [row[column_name][text_key] if text_key else row[column_name] for row in features]
 
-            for key, value in self.preprocess_fn(inputs, prompt=prompt, task=task).items():
+            # the prompt is prepended here, some Pooling setups also need its length to strip those tokens
+            if prompt:
+                if self.include_prompt_lengths:
+                    prompt_length = self._get_prompt_length(prompt, task=task)
+                    if prompt_length is not None:
+                        batch[f"{column_name}_prompt_length"] = torch.tensor(
+                            [prompt_length] * len(features), dtype=torch.int
+                        )
+                inputs = [prompt + text for text in inputs]
+
+            for key, value in self.tokenize_fn(inputs, task=task).items():
                 batch[f"{column_name}_{key}"] = value
 
         return batch
@@ -791,10 +830,11 @@ def main():
     print(f"Output Dir: {output_dir}")
     print(f"{'=' * 60}\n")
 
-    # load in fp32 to avoid errors but training runs in bf16 with flash attention 2
+    # load in fp32 to avoid errors but training runs in bf16
+    # for faster training add "attn_implementation": "flash_attention_2" on model_kwargs
     model = SentenceTransformer(
         model_name_or_path=args.model_name,
-        model_kwargs={"attn_implementation": "flash_attention_2", "dtype": torch.float32},
+        model_kwargs={"dtype": torch.float32},
     )
     model.max_seq_length = 8192
 
@@ -847,7 +887,7 @@ def main():
     )
 
     data_collator = SentenceTransformerDataCollatorSampleNeg(
-        preprocess_fn=model.preprocess,
+        tokenize_fn=model.tokenize,
         num_negatives=7,  # sampled per step from the stored 10
         prompts={
             "query": "query: ",
@@ -868,12 +908,15 @@ def main():
     )
 
     trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
-    model.save_pretrained(f"{output_dir}/final")
 
-    print(f"\n{'=' * 60}")
-    print("Training completed!")
-    print(f"Model saved to: {output_dir}/final")
-    print(f"{'=' * 60}")
+    # only the main process writes the final model, concurrent writes from every rank corrupt it
+    if accelerator.is_main_process:
+        model.save_pretrained(f"{output_dir}/final")
+
+        print(f"\n{'=' * 60}")
+        print("Training completed!")
+        print(f"Model saved to: {output_dir}/final")
+        print(f"{'=' * 60}")
 
 
 if __name__ == "__main__":

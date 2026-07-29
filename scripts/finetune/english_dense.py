@@ -339,7 +339,12 @@ def main():
     print(f"Output Dir: {output_dir}")
     print(f"{'=' * 60}\n")
 
-    model = SentenceTransformer(model_name_or_path=args.model_name)
+    # load in fp32 to avoid errors but training runs in bf16
+    # for faster training add "attn_implementation": "flash_attention_2" on model_kwargs
+    model = SentenceTransformer(
+        model_name_or_path=args.model_name,
+        model_kwargs={"dtype": torch.float32},
+    )
     model.max_seq_length = 512
 
     dev_evaluator = NanoBEIREvaluator(

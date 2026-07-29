@@ -307,7 +307,13 @@ def main():
     print(f"Output Dir: {output_dir}")
     print(f"{'=' * 60}\n")
 
-    model = models.ColBERT(args.model_name, document_length=args.document_length)
+    # load in fp32 to avoid errors but training runs in bf16
+    # for faster training add "attn_implementation": "flash_attention_2" on model_kwargs
+    model = models.ColBERT(
+        args.model_name,
+        document_length=args.document_length,
+        model_kwargs={"dtype": torch.float32}
+    )
 
     dev_evaluator = evaluation.NanoBEIREvaluator()
     train_loss = losses.Contrastive(model, temperature=args.temperature)

@@ -29,6 +29,9 @@ You can also install the environment with [uv](https://docs.astral.sh/uv/):
 uv sync
 ```
 
+For faster training, install the [FlashAttention-2](https://github.com/Dao-AILab/flash-attention/releases)
+wheel matching your Python, torch and CUDA versions and enable it in `model_kwargs` when instantiating the model.
+
 ## Training scripts
 
 | Stage | Dense | Late interaction |

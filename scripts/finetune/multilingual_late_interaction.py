@@ -78,14 +78,15 @@ from sentence_transformers import (
 from sentence_transformers.evaluation import NanoBEIREvaluator as NanoBEIREvaluatorST
 from sentence_transformers.model_card import SentenceTransformerModelCardData
 from sentence_transformers.sampler import MultiDatasetDefaultBatchSampler
+from sentence_transformers.util import fullname
 from tqdm import tqdm
 from transformers import TrainerCallback, TrainerControl, TrainerState
 from transformers.training_args import TrainingArguments
 
 logger = logging.getLogger(__name__)
 
-# Disable dataset metrics
-SentenceTransformerModelCardData.compute_dataset_metrics = lambda self, dataset, dataset_info, loss: {}
+# Model card metadata without the dataset statistics, which tokenize 1000 rows of every split at trainer init
+SentenceTransformerModelCardData.compute_dataset_metrics = lambda self, data, info, loss: {**info, "size": len(data), "columns": [f"<code>{column}</code>" for column in data.column_names], "loss": {"fullname": fullname(loss)}}
 
 
 class CachedContrastiveKLDiv(torch.nn.Module):
@@ -1311,14 +1312,15 @@ def main():
     print(f"Output Dir: {output_dir}")
     print(f"{'=' * 60}\n")
 
-    # do_query_expansion=False: MASK-padding every query up to query_length would dominate the batch
+    # load in fp32 to avoid errors but training runs in bf16
+    # for faster training add "attn_implementation": "flash_attention_2" on model_kwargs
     model = models.ColBERT(
         args.model_name,
         query_length=args.query_length,
         document_length=args.document_length,
         do_query_expansion=False,
         skiplist_words=[],
-        model_kwargs={"attn_implementation": "flash_attention_2", "dtype": torch.float32},
+        model_kwargs={"dtype": torch.float32},
     )
 
     dev_evaluator = MultilingualNanoBEIREvaluator(batch_size=args.eval_batch_size)
@@ -1350,7 +1352,6 @@ def main():
         fp16=False,
         bf16=True,
         seed=42,
-        report_to="wandb",
         run_name=run_name,
         learning_rate=args.learning_rate,
         dataloader_num_workers=8,
@@ -1374,12 +1375,15 @@ def main():
     )
 
     trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
-    model.save_pretrained(f"{output_dir}/final")
 
-    print(f"\n{'=' * 60}")
-    print("Training completed!")
-    print(f"Model saved to: {output_dir}/final")
-    print(f"{'=' * 60}")
+    # only the main process writes the final model, concurrent writes from every rank corrupt it
+    if accelerator.is_main_process:
+        model.save_pretrained(f"{output_dir}/final")
+
+        print(f"\n{'=' * 60}")
+        print("Training completed!")
+        print(f"Model saved to: {output_dir}/final")
+        print(f"{'=' * 60}")
 
 
 if __name__ == "__main__":
