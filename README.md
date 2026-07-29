@@ -7,7 +7,7 @@
 Training scripts for the open mDenseOn dense retriever and mLateOn late-interaction retriever. The models cover multilingual, long-context, and code search.
 We also include the training scripts for their English-only counterparts, DenseOn and LateOn.
 
-For the data recipe, experiments, and results, read the [mDenseOn and mLateOn release post](https://huggingface.co/blog/lightonai/mdenseon-mlateon), as well as the [original DenseOn and LateOn post](https://huggingface.co/blog/lightonai/denseon-lateon), or our paper (#TODO add link).
+For the data recipe, experiments, and results, read the [mDenseOn and mLateOn release post](https://huggingface.co/blog/lightonai/mdenseon-mlateon), as well as the [original DenseOn and LateOn post](https://huggingface.co/blog/lightonai/denseon-lateon).
 
 ## Setup
 
@@ -34,8 +34,11 @@ uv sync
 | Stage | Dense | Late interaction |
 | --- | --- | --- |
 | Multilingual pre-training | `scripts/pretrain/multilingual_dense.py` | `scripts/pretrain/multilingual_late_interaction.py` |
+| Multilingual fine-tuning | `scripts/finetune/multilingual_dense.py` | `scripts/finetune/multilingual_late_interaction.py` |
 | English pre-training | `scripts/pretrain/english_dense.py` | `scripts/pretrain/english_late_interaction.py` |
-| Fine-tuning | `scripts/finetune/dense.py` | `scripts/finetune/late_interaction.py` |
+| English fine-tuning | `scripts/finetune/english_dense.py` | `scripts/finetune/english_late_interaction.py` |
+
+The multilingual fine-tuning scripts combine a contrastive loss with KL-divergence distillation from stored cross-encoder teacher scores, and cover the multilingual, long-context, and code datasets. The English ones are contrastive-only on the NV-Embed KD dataset.
 
 Every script exposes its options through `--help`. Start a distributed run with `accelerate launch`, for example:
 
@@ -43,7 +46,7 @@ Every script exposes its options through `--help`. Start a distributed run with 
 accelerate launch scripts/pretrain/multilingual_dense.py --help
 
 accelerate launch scripts/pretrain/multilingual_dense.py \
-  --model_name aimagelab/mmBERT-base \
+  --model_name jhu-clsp/mmBERT-base \
   --batch_size 16384 \
   --mini_batch_size 16
 ```
@@ -60,13 +63,14 @@ Outputs are written under `output/`. Hugging Face datasets and checkpoints are d
 - [English-only collection, including data](https://huggingface.co/collections/lightonai/denseon-and-lateon)
 
 ## Citation
+If you use our code, models or datasets in your research, please consider citing our work:
 
-```
-@misc{sourty2026mdenseonlateon,
-  title={DenseOn with the LateOn: Fully Open Dense and Late-Interaction Models for Multilingual, Long-Context, and Code Search},
-  author={Sourty, Raphael and Chaffin, Antoine and Moura Junior, Paulo Roberto and Chatelain, Amelie},
-  year={2026},
-  howpublished={\url{https://huggingface.co/blog/lightonai/mDenseOn-mLateOn}},
+```bibtex
+@misc{sourty2026mdenseonmlateon,
+  title        = {{mDenseOn with the mLateOn}: Open Multilingual, Long-Context, and Code Retrieval Models},
+  author       = {Sourty, Raphael and Chaffin, Antoine and Moura Junior, Paulo Roberto and Chatelain, Amelie},
+  year         = {2026},
+  howpublished = {\url{https://huggingface.co/blog/lightonai/mDenseOn-mLateOn}}
 }
 ```
 
