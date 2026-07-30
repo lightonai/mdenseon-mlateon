@@ -7,7 +7,7 @@
 Training scripts for the open mDenseOn dense retriever and mLateOn late-interaction retriever. The models cover multilingual, long-context, and code search.
 We also include the training scripts for their English-only counterparts, DenseOn and LateOn.
 
-For the data recipe, experiments, and results, read the [mDenseOn and mLateOn release post](https://huggingface.co/blog/lightonai/mdenseon-mlateon), as well as the [original DenseOn and LateOn post](https://huggingface.co/blog/lightonai/denseon-lateon).
+For the data recipe, experiments, and results, check out our [mDenseOn and mLateOn blog](https://huggingface.co/blog/lightonai/mdenseon-mlateon), the [DenseOn and LateOn blog](https://huggingface.co/blog/lightonai/denseon-lateon) and our [paper](https://arxiv.org/abs/2607.27178).
 
 ## Setup
 
@@ -69,11 +69,14 @@ Outputs are written under `output/`. Hugging Face datasets and checkpoints are d
 If you use our code, models or datasets in your research, please consider citing our work:
 
 ```bibtex
-@misc{sourty2026mdenseonmlateon,
-  title        = {{mDenseOn with the mLateOn}: Open Multilingual, Long-Context, and Code Retrieval Models},
-  author       = {Sourty, Raphael and Chaffin, Antoine and Moura Junior, Paulo Roberto and Chatelain, Amelie},
-  year         = {2026},
-  howpublished = {\url{https://huggingface.co/blog/lightonai/mDenseOn-mLateOn}}
+@misc{sourty2026denseonlateonfullyopen,
+  title         = {DenseOn with the LateOn: Fully Open Dense and Late-Interaction Models for Multilingual, Long-Context, and Code Search},
+  author        = {Raphaël Sourty and Antoine Chaffin and Paulo Roberto Moura Junior and Amélie Chatelain},
+  year          = {2026},
+  eprint        = {2607.27178},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CL},
+  url           = {https://arxiv.org/abs/2607.27178},
 }
 ```
 

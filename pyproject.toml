@@ -28,6 +28,7 @@ dev = [
 ]
 
 [project.urls]
+Paper = "https://arxiv.org/abs/2607.27178"
 Article = "https://huggingface.co/blog/lightonai/mdenseon-mlateon"
 Models = "https://huggingface.co/collections/lightonai/denseon-and-lateon"
 
