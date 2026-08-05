@@ -2,9 +2,9 @@
   <img src="assets/mDenseOn-mLateOn.png" alt="mDenseOn and mLateOn" width="560">
 </p>
 
-# mDenseOn and mLateOn training code
+# mDenseOn and mLateOn training and evaluation
 
-Training scripts for the open mDenseOn dense retriever and mLateOn late-interaction retriever. The models cover multilingual, long-context, and code search.
+Training and evaluation scripts for the open mDenseOn dense retriever and mLateOn late-interaction retriever. The models cover multilingual, long-context, and code search.
 We also include the training scripts for their English-only counterparts, DenseOn and LateOn.
 
 For the data recipe, experiments, and results, check out our [mDenseOn and mLateOn blog](https://huggingface.co/blog/lightonai/mdenseon-mlateon), the [DenseOn and LateOn blog](https://huggingface.co/blog/lightonai/denseon-lateon) and our [paper](https://arxiv.org/abs/2607.27178).
@@ -29,7 +29,7 @@ You can also install the environment with [uv](https://docs.astral.sh/uv/):
 uv sync
 ```
 
-For faster training, install [FlashAttention-2](https://github.com/Dao-AILab/flash-attention) with `uv sync --extra flash` and add `"attn_implementation": "flash_attention_2"` to `model_kwargs` when instantiating the models.
+For faster training and evaluation, install [FlashAttention-2](https://github.com/Dao-AILab/flash-attention) with `uv sync --extra flash`. The training scripts use it when you add `"attn_implementation": "flash_attention_2"` to `model_kwargs` when instantiating the models; the evaluation scripts take a `--fa2` flag.
 
 ## Training scripts
 
@@ -84,7 +84,7 @@ python scripts/eval/dense_parallel.py \
 
 ### Late interaction
 
-Late-interaction models encode with `accelerate` across all GPUs and retrieve with [FastPLAID](https://github.com/lightonai/fast-plaid) index (`fast-plaid>=1.5`), where tasks run **sequentially** as the search step is GPU-bound.
+Late-interaction models encode with `accelerate` across all GPUs and retrieve with [FastPLAID](https://github.com/lightonai/fast-plaid) index (`fast-plaid>=1.6`), where tasks run **sequentially** as the search step is GPU-bound.
 
 ```bash
 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch scripts/eval/late_interaction.py \
