@@ -1,7 +1,7 @@
 [project]
-name = "mdenseon-mlateon-training"
+name = "mdenseon-mlateon-train-eval"
 version = "0.1.0"
-description = "Training scripts for the mDenseOn and mLateOn retrieval models"
+description = "Training and eval scripts for the mDenseOn and mLateOn retrieval models"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"
@@ -26,6 +26,13 @@ dev = [
   "pytest>=8,<10",
   "ruff>=0.12,<1",
 ]
+eval = [
+  "fast-plaid>=1.5,<2",
+  "mteb>=2.18,<3",
+]
+flash = [
+  "flash-attn>=2.8,<3",
+]
 
 [project.urls]
 Paper = "https://arxiv.org/abs/2607.27178"
@@ -35,6 +42,12 @@ Models = "https://huggingface.co/collections/lightonai/denseon-and-lateon"
 [build-system]
 requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
+
+[tool.uv]
+# flash-attn compiles against the installed torch, so it cannot build in an isolated env.
+no-build-isolation-package = ["flash-attn"]
+# pylate 1.6.0 caps fast-plaid at 1.4.6.x but the eval scripts need the 1.5 API; they coexist fine.
+override-dependencies = ["fast-plaid>=1.5,<2"]
 
 [tool.setuptools]
 py-modules = []
