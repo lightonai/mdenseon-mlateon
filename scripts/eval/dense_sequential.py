@@ -9,7 +9,7 @@ On CUDA OOM the budget is halved and the task retried; results are checkpointed 
 subset, so a crash mid-task only re-runs the subsets still missing.
 
 Usage:
-    python eval/dense_sequential.py \
+    python scripts/eval/dense_sequential.py \
         --gpus 0,1,2,3,4,5,6,7 --bf16 \
         --results_folder results/dense \
         --models lightonai/mDenseOn \
@@ -596,7 +596,7 @@ def run_evals(models: list[str], tasks: list[str], output_folder: str, devices: 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     """Parse CLI args."""
 
-    repo = Path(__file__).resolve().parent.parent
+    repo = Path(__file__).resolve().parent.parent.parent
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--gpus",
                    help="Comma-separated GPU ids, e.g. 0,1,2,3,4,5,6,7")

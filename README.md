@@ -57,7 +57,7 @@ Outputs are written under `output/`. Hugging Face datasets and checkpoints are d
 
 ## Evaluation
 
-The `eval/` folder contains multi-GPU [MTEB](https://github.com/embeddings-benchmark/mteb) evaluation scripts for both model families. They require `uv sync --extra eval`.
+The `scripts/eval/` folder contains multi-GPU [MTEB](https://github.com/embeddings-benchmark/mteb) evaluation scripts for both model families. They require `uv sync --extra eval`.
 
 All scripts pack length-sorted texts into variable-size batches under a character budget (`--encode_char_budget`, default 3M characters), so short documents form large batches and long documents small ones without per-task batch-size tuning. Encoding OOMs recover automatically: the dense scripts halve the budget and retry the task, re-computing only the results still missing, while the late-interaction script re-encodes the offending batch in two halves. To further speed up evals, pass `--fa2` to enable encoding with FlashAttention-2 (see [Setup](#setup) for installing the `flash` extra). All scripts expose their options through `--help`.
 
@@ -65,17 +65,17 @@ All scripts pack length-sorted texts into variable-size batches under a characte
 
 Dense models can be evaluated in two ways, sharing the same results layout (one subfolder per model; already-completed (task, language) pairs are skipped on rerun, so the two scripts can fill the same results folder):
 
-- `eval/dense_sequential.py` runs tasks **sequentially**, distributing each task's encoding across all GPUs. This is fastest for large, encode-bound tasks (MSMARCO, MLDR, MIRACL, CodeSearchNet).
-- `eval/dense_parallel.py` runs tasks in **parallel**, each GPU owning its task's encoding end to end. This is fastest for running several small, retrieval-bound tasks (TREC-COVID, FiQA, SciFact, Quora).
+- `scripts/eval/dense_sequential.py` runs tasks **sequentially**, distributing each task's encoding across all GPUs. This is fastest for large, encode-bound tasks (MSMARCO, MLDR, MIRACL, CodeSearchNet).
+- `scripts/eval/dense_parallel.py` runs tasks in **parallel**, each GPU owning its task's encoding end to end. This is fastest for running several small, retrieval-bound tasks (TREC-COVID, FiQA, SciFact, Quora).
 
 ```bash
-python eval/dense_sequential.py \
+python scripts/eval/dense_sequential.py \
   --gpus 0,1,2,3,4,5,6,7 --bf16 \
   --results_folder results/dense \
   --models lightonai/mDenseOn \
   --tasks MIRACLRetrievalHardNegatives MultiLongDocRetrieval
 
-python eval/dense_parallel.py \
+python scripts/eval/dense_parallel.py \
   --gpus 0,1,2,3,4,5,6,7 --bf16 \
   --results_folder results/dense \
   --models lightonai/mDenseOn \
@@ -87,7 +87,7 @@ python eval/dense_parallel.py \
 Late-interaction models encode with `accelerate` across all GPUs and retrieve with [FastPLAID](https://github.com/lightonai/fast-plaid) index (`fast-plaid>=1.5`), where tasks run **sequentially** as the search step is GPU-bound.
 
 ```bash
-CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch eval/late_interaction.py \
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch scripts/eval/late_interaction.py \
   --models lightonai/mLateOn \
   --tasks MIRACLRetrievalHardNegatives MultiLongDocRetrieval \
   --results_folder results/late_interaction

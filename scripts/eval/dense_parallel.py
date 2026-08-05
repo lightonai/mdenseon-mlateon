@@ -2,17 +2,17 @@
 """Task-parallel MTEB evaluation for dense models: one task per GPU.
 
 Each task runs as an independent single-GPU subprocess, up to one per GPU in
-parallel, with the same token-budget batch packing as eval/dense_sequential.py (budget halved
+parallel, with the same token-budget batch packing as scripts/eval/dense_sequential.py (budget halved
 on CUDA OOM). Dataset loading, encoding, and scoring of different tasks overlap
 fully, so this is the fastest option for sweeps of small tasks where per-task CPU
-work dominates. For large encode-bound corpora use eval/dense_sequential.py, which puts every
+work dominates. For large encode-bound corpora use scripts/eval/dense_sequential.py, which puts every
 GPU on a single task.
 
-Results use the same layout as eval/dense_sequential.py (one subfolder per model), so both
+Results use the same layout as scripts/eval/dense_sequential.py (one subfolder per model), so both
 scripts can share a results folder and completed tasks are skipped on rerun.
 
 Usage:
-    python eval/dense_parallel.py \
+    python scripts/eval/dense_parallel.py \
         --gpus 0,1,2,3,4,5,6,7 --bf16 \
         --results_folder results/dense \
         --models lightonai/mDenseOn \
@@ -177,7 +177,7 @@ def schedule(args: argparse.Namespace, gpus: list[str]) -> int:
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     """Parse CLI args."""
 
-    repo = Path(__file__).resolve().parent.parent
+    repo = Path(__file__).resolve().parent.parent.parent
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--gpus", help="Comma-separated GPU ids, e.g. 0,1,2,3,4,5,6,7")
     p.add_argument("--results_folder",

@@ -7,7 +7,7 @@ short documents form large batches and long documents small ones without per-tas
 tuning. Indexing and retrieval then run on the main process with fast-plaid.
 
 Usage:
-    CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch eval/late_interaction.py \
+    CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch scripts/eval/late_interaction.py \
         --models lightonai/mLateOn \
         --tasks MIRACLRetrievalHardNegatives MultiLongDocRetrieval \
         --results_folder results/late_interaction
